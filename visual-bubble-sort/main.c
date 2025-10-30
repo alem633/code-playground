@@ -39,7 +39,7 @@ void clearScreen();
 void fillWithNoise(int arr[], int max_noise, size_t size);
 /* void printArray(int arr[], size_t size, bool shouldPrintIndex); [DEBUG] */
 void printArrayVisually(int arr[], size_t size);
-void swap(int*, int*);
+static void swap(int*, int*);
 
 int main(void) {
   srand(time(NULL));
@@ -117,7 +117,7 @@ void printArrayVisually(int arr[], size_t size) {
 
 }
 
-void swap(int *val1, int *val2) {
+static void swap(int *val1, int *val2) {
   *val1 = *val1 ^ *val2;
   *val2 = *val1 ^ *val2;
   *val1 = *val1 ^ *val2;
