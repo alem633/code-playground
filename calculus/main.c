@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <time.h>
 
-#define PRECISION 0.0000000000000000001
+#define PRECISION 1e-19
 
 typedef struct {
   /* x starts with a value of either 0 or 1 */
