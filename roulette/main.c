@@ -1,3 +1,5 @@
+#include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -10,12 +12,10 @@
 #define BUFF_SIZE MB
 #define EXCEPTION_IDX 37
 
-#define ROULETTE_MODE 0
-
 typedef struct {
-  size_t negs;
-  size_t zeros;
-  size_t ones;
+  long long negs;
+  long long zeros;
+  long long ones;
 
   long double negs_occurances; 
   long double zeros_occurances;
@@ -24,38 +24,33 @@ typedef struct {
 } Log;
 
 void get_occurances(Log *stats, size_t buff_size);
-void init_buffer(signed char *buff, size_t buff_size, size_t exception_idx, size_t *score);
-void log_stats(Log *stats,signed char *buff, size_t buff_size);
+void init_buffer_get_stats(uint8_t *buff, Log *stats, size_t buff_size, int exception_idx);
+
+static bool get_bit(uint8_t *buff, size_t bit_pos);
+static void set_bit(uint8_t *buff, size_t bit_pos, bool val);
 
 int main(void) {
   srand(time(NULL));
 
   Log stats = {0};
 
-  signed char *buff = malloc(BUFF_SIZE);
+  uint8_t *buff = malloc(BUFF_SIZE);
   if (!buff) {
     fprintf(stderr, "[FATAL] malloc failed\n");
     exit(EXIT_FAILURE);
   }
 
-  #if ROULETTE_MODE
-    size_t score;
-    init_buffer(buff, BUFF_SIZE, EXCEPTION_IDX, &score);
-  #else
-    init_buffer(buff, BUFF_SIZE, EXCEPTION_IDX, NULL);
-  #endif
+  init_buffer_get_stats(buff, &stats, BUFF_SIZE, EXCEPTION_IDX);
 
-  log_stats(&stats, buff, BUFF_SIZE);
+  get_occurances(&stats, BUFF_SIZE);
 
   printf("[LOGGING]\n\n");
 
-  printf( DARK_GREEN  "[%2d]:" RESET "  %9zu\n" , -1, stats.negs);
-  printf( DARK_BLUE   "[%2d]:" RESET "  %9zu\n" ,  0, stats.zeros);
-  printf( DARK_YELLOW "[%2d]: " RESET " %9zu\n" ,  1, stats.ones);
+  printf( DARK_GREEN  "[%2d]:" RESET "  %12lld\n" , -1, stats.negs);
+  printf( DARK_BLUE   "[%2d]:" RESET "  %12lld\n" ,  0, stats.zeros);
+  printf( DARK_YELLOW "[%2d]: " RESET " %12lld\n" ,  1, stats.ones);
 
   printf("\n[BASIC STATS]\n\n");
-
-  get_occurances(&stats, BUFF_SIZE);
 
   printf( DARK_GREEN  "- odds %2d:" RESET " %9.3Lf%%\n" , -1, stats.negs_occurances);
   printf( DARK_BLUE   "- odds %2d:" RESET " %9.3Lf%%\n" ,  0, stats.zeros_occurances);
@@ -80,9 +75,9 @@ int main(void) {
 
 
 void get_occurances(Log *stats, size_t buff_size) {
- stats->negs_occurances  = ( (long double) stats->negs / buff_size) * 100;
- stats->zeros_occurances = ( (long double)stats->zeros / buff_size) * 100;
- stats->ones_occurances  = ( (long double) stats->ones / buff_size) * 100;
+ stats->negs_occurances  = ( (long double) stats->negs / (buff_size * 8)) * 100;
+ stats->zeros_occurances = ( (long double)stats->zeros / (buff_size * 8)) * 100;
+ stats->ones_occurances  = ( (long double) stats->ones / (buff_size * 8)) * 100;
 }
 
 static void clear_input_buffer() {
@@ -90,71 +85,39 @@ static void clear_input_buffer() {
     while ((c = getchar()) != '\n' && c != EOF);
 }
 
-void init_buffer(signed char *buff, size_t buff_size, size_t exception_idx, size_t *score) {
-  /* if variable score is not null roulette mode is activated */
-  char roulette_mode = 0;
-  if (score != NULL)
-    roulette_mode = 1;
-
-  for (size_t i=0;i<buff_size;i++) {
-    buff[i] = rand() % 2;
-
-    if (rand() % exception_idx == 0)
-      buff[i] = -1;
-    
-    if (roulette_mode == 1) { // [TODO] i hate this code
-
-      int guess = 0;
-      do {
-
-        printf(DARK_RED "[ROULETTE MODE]" RESET " guess [-1, 0, 1] (2 to quit): ");
-
-        if (scanf("%d", &guess) != 1 || guess < -1 || guess > 2) {
-          printf("Invalid input\n");
-          clear_input_buffer(); 
-          continue;
-        }
-
-        clear_input_buffer();
-
-        if (guess == 2) {
-          printf("Quitting...\n");
-          roulette_mode = 0;
+void init_buffer_get_stats(uint8_t *buff, Log *stats, size_t buff_size, int exception_idx) {
+  for (size_t i=0;i<buff_size * 8;i++) {
+    int val = rand() % 2;
+    switch (val) {
+      case 0:
+        set_bit(buff, i, val);
+        if (!(rand() % exception_idx)) {
+          stats->negs++;
           break;
         }
-
-        if (guess < -1 || guess > 1) {
-          printf(DARK_RED "[ROULETTE MODE]" RESET " guess [-1, 0, 1] (2 to quit): ");
-          continue;
-        }
-
-        if (guess == buff[i]) {
-          printf("You guessed: %d\n", guess);
-          (*score)++;
-        }
-
-        break;
-
-      } while (1);
-
-    }
-
-  }
-
-}
-
-void log_stats(Log *stats,signed char *buff, size_t buff_size) {
-  for (size_t i=0;i<buff_size;i++) {
-    switch (buff[i]) {
-      case -1:
-        stats->negs++;
-        break;
-      case 0:
         stats->zeros++;
         break;
       case 1:
+        set_bit(buff, i, val);
+        if (!(rand() % exception_idx)) {
+          stats->negs++;
+          break;
+        }
         stats->ones++;
         break;
     }
   }
+}
+
+static bool get_bit(uint8_t *buff, size_t bit_pos) {
+  if (buff[bit_pos >> 3] & (1 << (bit_pos & 7)))
+    return 1;
+  return 0;
+}
+
+static void set_bit(uint8_t *buff, size_t bit_pos, bool val) {
+  if (val == 1)
+    buff[bit_pos >> 3] |=  (1 << (bit_pos & 7));
+  else
+    buff[bit_pos >> 3] &= ~(1 << (bit_pos & 7));
 }

@@ -1,9 +1,22 @@
-A tiny C program that fills a buffer with random values (-1, 0, or 1), logs their occurrences, and displays basic statistics.
+# Roulette Odds Simulator
 
-## Features
+A minimal C program that generates a buffer of random bits, counts zeros, ones, and a rare “negative” event, and displays their percentages.
 
-- Normal Mode: Generates and analyzes random data.
-- Roulette Mode (ROULETTE_MODE=1): Lets you guess each value as it's generated—score tracked!
+The program prints a table of percentages for each outcome.  
+
+### What it does  
+* Creates a buffer of size **1 MB** (`BUFF_SIZE`).  
+* Fills it with random bits (0 or 1).  
+* With probability **1/37** each bit is marked as a negative event.  
+* Calculates the fraction of zeros, ones, and negatives over the total bits.  
+
+### Customization  
+* Change `BUFF_SIZE` to alter buffer size.  
+* Modify `EXCEPTION_IDX` to adjust negative‑event frequency.  
+
+This tool is a simple demonstration of probability distribution in a finite sample.
+
+#### Demo
 
 ```
 [LOGGING]
